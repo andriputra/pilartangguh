@@ -20,3 +20,9 @@ export function slugify(s: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+/// Spec rows arrive either as an array or as a newline-separated textarea value.
+export function specList(value: unknown): string[] {
+  const rows = Array.isArray(value) ? value : String(value ?? "").split(/\r?\n/);
+  return rows.map((r) => String(r).trim()).filter(Boolean).slice(0, 20);
+}

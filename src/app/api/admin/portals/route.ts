@@ -6,7 +6,12 @@ import { guard, isResponse } from "@/lib/api";
 export async function GET() {
   const g = await guard();
   if (isResponse(g)) return g;
-  return Response.json(await prisma.portalLink.findMany({ orderBy: [{ order: "asc" }, { createdAt: "asc" }] }));
+  return Response.json(
+    await prisma.portalLink.findMany({
+      orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+      include: { _count: { select: { videos: true } }, videos: { orderBy: { publishedAt: "desc" }, take: 1 } },
+    })
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -21,6 +26,7 @@ export async function POST(req: NextRequest) {
       description: String(body.description || ""),
       url: body.url ? String(body.url) : null,
       tag: body.tag ? String(body.tag) : null,
+      youtubeChannelId: body.youtubeChannelId ? String(body.youtubeChannelId).trim() : null,
       status: body.status === "SEGERA HADIR" ? "SEGERA HADIR" : "ONLINE",
       number: Number(body.number || count + 1),
       dark: Boolean(body.dark),

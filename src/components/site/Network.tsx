@@ -11,6 +11,7 @@ export type PortalItem = {
   status: string;
   number: number;
   dark: boolean;
+  videos?: { title: string; url: string }[];
 };
 
 export default function Network({ network, portals }: { network: SectionData["network"]; portals: PortalItem[] }) {
@@ -60,6 +61,25 @@ export default function Network({ network, portals }: { network: SectionData["ne
                   <p className={`mt-1.5 text-[12.5px] leading-relaxed ${p.dark ? "text-white/55" : "text-ink/55"}`}>
                     {p.description}
                   </p>
+                  {p.videos?.[0] &&
+                    (online ? (
+                      <p className={`mt-2.5 flex items-start gap-1.5 text-[11.5px] font-semibold leading-snug ${p.dark ? "text-brand" : "text-brand"}`}>
+                        <span className="mt-px">▶</span>
+                        <span className="line-clamp-2">{p.videos[0].title}</span>
+                      </p>
+                    ) : (
+                      <a
+                        href={p.videos[0].url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`mt-2.5 flex items-start gap-1.5 text-[11.5px] font-semibold leading-snug transition-colors ${
+                          p.dark ? "text-brand hover:text-white" : "text-brand hover:text-brand-dark"
+                        }`}
+                      >
+                        <span className="mt-px">▶</span>
+                        <span className="line-clamp-2">{p.videos[0].title}</span>
+                      </a>
+                    ))}
                   <div className="mt-auto flex items-end justify-between pt-4">
                     <span className={`text-[10px] ${p.dark ? "text-brand" : online ? "text-brand" : "text-ink/40"}`}>
                       {online ? p.url?.replace(/^https?:\/\//, "") : "URL segera hadir"}

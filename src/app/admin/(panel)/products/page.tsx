@@ -23,6 +23,9 @@ type Product = {
   image: string | null;
   badge: string | null;
   description: string | null;
+  code: string | null;
+  price: string | null;
+  specs: string[];
   order: number;
   published: boolean;
   categoryId: string;
@@ -31,7 +34,19 @@ type Product = {
 
 type Draft = Omit<Product, "id" | "category"> & { id?: string };
 
-const BLANK: Draft = { name: "", slug: "", image: "", badge: "", description: "", order: 0, published: true, categoryId: "" };
+const BLANK: Draft = {
+  name: "",
+  slug: "",
+  image: "",
+  badge: "",
+  description: "",
+  code: "",
+  price: "",
+  specs: [],
+  order: 0,
+  published: true,
+  categoryId: "",
+};
 
 export default function ProductsAdmin() {
   const api = useApi();
@@ -126,7 +141,7 @@ export default function ProductsAdmin() {
     <div className="mx-auto max-w-5xl">
       <PageHeader
         title="Produk & Kategori"
-        subtitle="Katalog peralatan pada section 'Pilih Perlindungannya'"
+        subtitle="Produk tampil di halaman /katalog, halaman detail, dan section katalog beranda"
         actions={
           <button
             type="button"
@@ -151,6 +166,8 @@ export default function ProductsAdmin() {
                   <th className="py-2 pr-2">Nama</th>
                   <th className="hidden py-2 pr-2 sm:table-cell">Kategori</th>
                   <th className="hidden py-2 pr-2 md:table-cell">Badge</th>
+                  <th className="hidden py-2 pr-2 md:table-cell">Kode</th>
+                  <th className="hidden py-2 pr-2 lg:table-cell">Spesifikasi</th>
                   <th className="py-2 pr-2">Status</th>
                   <th className="py-2 text-right">Aksi</th>
                 </tr>
@@ -166,10 +183,18 @@ export default function ProductsAdmin() {
                         ) : null}
                       </div>
                     </td>
-                    <td className="py-2 pr-2 font-semibold">{p.name}</td>
+                    <td className="py-2 pr-2 font-semibold">
+                      {p.name}
+                      <span className="mt-0.5 block text-[11px] font-normal text-ink/40 md:hidden">{p.code || "tanpa kode"}</span>
+                    </td>
                     <td className="hidden py-2 pr-2 text-ink/60 sm:table-cell">{p.category?.name}</td>
                     <td className="hidden py-2 pr-2 md:table-cell">
                       {p.badge && <span className="rounded-sm bg-brand-light px-2 py-0.5 text-[11px] font-bold text-brand-dark">{p.badge}</span>}
+                    </td>
+                    <td className="hidden py-2 pr-2 font-mono text-[11.5px] text-ink/60 md:table-cell">{p.code || "—"}</td>
+                    <td className="hidden py-2 pr-2 text-[11.5px] text-ink/50 lg:table-cell">
+                      {p.specs.length ? `${p.specs.length} baris` : "—"}
+                      {p.price ? <span className="mt-0.5 block text-ink/70">{p.price}</span> : null}
                     </td>
                     <td className="py-2 pr-2">
                       <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${p.published ? "bg-emerald-50 text-emerald-700" : "bg-sand text-ink/50"}`}>
@@ -195,7 +220,7 @@ export default function ProductsAdmin() {
                 ))}
                 {products.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-ink/40">
+                    <td colSpan={8} className="py-6 text-center text-ink/40">
                       Belum ada produk.
                     </td>
                   </tr>
@@ -237,6 +262,29 @@ export default function ProductsAdmin() {
             />
             <TextField label="Badge (opsional)" value={editing.badge || ""} onChange={(v) => setEditing({ ...editing, badge: v })} placeholder="Best seller" />
             <TextField label="Urutan" type="number" value={String(editing.order)} onChange={(v) => setEditing({ ...editing, order: Number(v) || 0 })} />
+            <TextField
+              label="Kode produk"
+              value={editing.code || ""}
+              onChange={(v) => setEditing({ ...editing, code: v })}
+              placeholder="PTG-HLM-001"
+              hint="Ditampilkan sebagai chip di kartu & halaman detail."
+            />
+            <TextField
+              label="Harga"
+              value={editing.price || ""}
+              onChange={(v) => setEditing({ ...editing, price: v })}
+              placeholder="Rp 185.000 / pcs"
+              hint="Kosongkan bila harga mengikuti jumlah & lokasi."
+            />
+            <div className="sm:col-span-2">
+              <TextArea
+                label="Spesifikasi (1 baris = 1 poin)"
+                value={editing.specs.join("\n")}
+                onChange={(v) => setEditing({ ...editing, specs: v.split("\n") })}
+                rows={4}
+                placeholder={"Cangkang tahan benturan\nBusa peredam ganda\nWarna: orange"}
+              />
+            </div>
             <div className="sm:col-span-2">
               <TextArea label="Deskripsi (opsional)" value={editing.description || ""} onChange={(v) => setEditing({ ...editing, description: v })} rows={2} />
             </div>

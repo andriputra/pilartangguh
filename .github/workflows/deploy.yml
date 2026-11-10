@@ -1,0 +1,49 @@
+# Deploy PilarTangguh ke VPS setiap push ke main.
+#
+# Secret yang harus diisi di GitHub → Settings → Secrets and variables → Actions:
+#   SSH_PRIVATE_KEY  isi file ~/.ssh/github-actions-vps (private key yang sudah
+#                    diotorisasi di authorized_keys server 203.194.114.127)
+#   VPS_HOST         203.194.114.127
+#   VPS_USER         root
+name: Deploy ke VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch yang di-deploy
+        default: main
+        required: true
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & reload di server
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Jalankan scripts/deploy-vps.sh lewat SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_BRANCH: ${{ inputs.branch || github.ref_name }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script_stop: true
+          envs: DEPLOY_BRANCH
+          # Repo di-clone oleh server sendiri (lewat HTTPS), jadi Actions tidak perlu mengirim kode.
+          script: |
+            set -e
+            export DEPLOY_BRANCH="${DEPLOY_BRANCH:-${GITHUB_REF_NAME:-main}}"
+            if [ ! -f /opt/pilartangguh/src/scripts/deploy-vps.sh ]; then
+              mkdir -p /opt/pilartangguh
+              git clone --branch "$DEPLOY_BRANCH" https://github.com/andriputra/pilartangguh.git /opt/pilartangguh/src
+            fi
+            bash /opt/pilartangguh/src/scripts/deploy-vps.sh

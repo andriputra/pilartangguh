@@ -9,8 +9,10 @@ const TABS: { key: SectionKey; label: string }[] = [
   { key: "stats", label: "Statistik" },
   { key: "marquee", label: "Ticker" },
   { key: "about", label: "Profil" },
-  { key: "catalog", label: "Katalog" },
+  { key: "catalog", label: "Katalog (Beranda)" },
+  { key: "catalogPage", label: "Halaman Katalog" },
   { key: "network", label: "Portal" },
+  { key: "contactPage", label: "Halaman Kontak" },
   { key: "cta", label: "CTA" },
   { key: "footer", label: "Footer" },
   { key: "seo", label: "SEO" },
@@ -60,7 +62,7 @@ export default function ContentEditor() {
     <div className="mx-auto max-w-3xl">
       <PageHeader
         title="Konten Landing"
-        subtitle="Edit teks, gambar, dan kartu pada halaman depan pilartangguh.co.id"
+        subtitle="Edit teks, gambar, dan kartu pada beranda serta halaman /katalog dan /kontak"
         actions={
           <button type="button" onClick={save} disabled={loading || saving} className="btn-primary !py-2 !text-xs disabled:opacity-60">
             {saving ? "Menyimpan…" : `Simpan section "${tab}"`}
@@ -180,6 +182,172 @@ export default function ContentEditor() {
                 <TextField label="Judul aksen (orange)" value={draft[tab].titleAccent} onChange={(v) => patch(tab, { titleAccent: v })} />
               </div>
               <TextArea label="Paragraf" value={draft[tab].body} onChange={(v) => patch(tab, { body: v })} />
+            </>
+          )}
+
+          {tab === "catalogPage" && (
+            <>
+              <p className="rounded-md bg-sand/70 px-4 py-3 text-[12.5px] leading-relaxed text-ink/60">
+                Isi halaman <b>/katalog</b> dan halaman detail produk. Daftar produk, kode, harga &amp; spesifikasi diatur di menu Produk &amp; Kategori; sidebar kategori dibuat otomatis dari menu Kategori.
+              </p>
+
+              <p className="label mt-2">Kop halaman</p>
+              <TextField label="Eyebrow" value={draft.catalogPage.eyebrow} onChange={(v) => patch("catalogPage", { eyebrow: v })} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Judul baris 1" value={draft.catalogPage.title} onChange={(v) => patch("catalogPage", { title: v })} />
+                <TextField label="Judul aksen (orange)" value={draft.catalogPage.titleAccent} onChange={(v) => patch("catalogPage", { titleAccent: v })} />
+              </div>
+              <TextArea label="Paragraf" value={draft.catalogPage.body} onChange={(v) => patch("catalogPage", { body: v })} rows={4} />
+
+              <p className="label mt-2">Sidebar kategori</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Judul sidebar" value={draft.catalogPage.sidebarTitle} onChange={(v) => patch("catalogPage", { sidebarTitle: v })} />
+                <TextField label="Label 'semua' di sidebar" value={draft.catalogPage.allLabel} onChange={(v) => patch("catalogPage", { allLabel: v })} />
+                <TextField label="Label 'semua' di chip mobile" value={draft.catalogPage.allLabelShort} onChange={(v) => patch("catalogPage", { allLabelShort: v })} />
+                <TextField label="Tombol reset filter" value={draft.catalogPage.resetLabel} onChange={(v) => patch("catalogPage", { resetLabel: v })} />
+              </div>
+              <TextField label="Tombol minta rekomendasi" value={draft.catalogPage.recommendLabel} onChange={(v) => patch("catalogPage", { recommendLabel: v })} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Judul kartu bantu" value={draft.catalogPage.helpTitle} onChange={(v) => patch("catalogPage", { helpTitle: v })} />
+                <TextField label="Tombol WhatsApp di kartu bantu" value={draft.catalogPage.helpButton} onChange={(v) => patch("catalogPage", { helpButton: v })} />
+              </div>
+              <TextArea label="Isi kartu bantu" value={draft.catalogPage.helpBody} onChange={(v) => patch("catalogPage", { helpBody: v })} rows={2} />
+
+              <p className="label mt-2">Toolbar &amp; tampilan</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Placeholder pencarian" value={draft.catalogPage.searchPlaceholder} onChange={(v) => patch("catalogPage", { searchPlaceholder: v })} />
+                <TextField
+                  label="Label jumlah hasil"
+                  value={draft.catalogPage.resultsLabel}
+                  onChange={(v) => patch("catalogPage", { resultsLabel: v })}
+                  hint="Pakai {shown} dan {total} sebagai placeholder angka."
+                />
+                <TextField label="Label urutkan" value={draft.catalogPage.sortLabel} onChange={(v) => patch("catalogPage", { sortLabel: v })} />
+                <TextField label="Produk per halaman" type="number" value={draft.catalogPage.perPage} onChange={(v) => patch("catalogPage", { perPage: v })} />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Opsi: Terbaru" value={draft.catalogPage.sortNewest} onChange={(v) => patch("catalogPage", { sortNewest: v })} />
+                <TextField label="Opsi: Nama A-Z" value={draft.catalogPage.sortAz} onChange={(v) => patch("catalogPage", { sortAz: v })} />
+                <TextField label="Opsi: Nama Z-A" value={draft.catalogPage.sortZa} onChange={(v) => patch("catalogPage", { sortZa: v })} />
+                <TextField label="Opsi: Per kategori" value={draft.catalogPage.sortCategory} onChange={(v) => patch("catalogPage", { sortCategory: v })} />
+                <TextField label="Tombol: Grid" value={draft.catalogPage.viewGrid} onChange={(v) => patch("catalogPage", { viewGrid: v })} />
+                <TextField label="Tombol: List" value={draft.catalogPage.viewList} onChange={(v) => patch("catalogPage", { viewList: v })} />
+                <TextField label="Tombol: halaman sebelumnya" value={draft.catalogPage.pagePrev} onChange={(v) => patch("catalogPage", { pagePrev: v })} />
+                <TextField label="Tombol: halaman berikutnya" value={draft.catalogPage.pageNext} onChange={(v) => patch("catalogPage", { pageNext: v })} />
+              </div>
+
+              <p className="label mt-2">Kartu produk</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Label kode" value={draft.catalogPage.codeLabel} onChange={(v) => patch("catalogPage", { codeLabel: v })} />
+                <TextField label="Label harga" value={draft.catalogPage.priceLabel} onChange={(v) => patch("catalogPage", { priceLabel: v })} />
+                <TextField label="Tombol tanya (WA)" value={draft.catalogPage.askLabel} onChange={(v) => patch("catalogPage", { askLabel: v })} />
+                <TextField label="Tautan detail" value={draft.catalogPage.detailLabel} onChange={(v) => patch("catalogPage", { detailLabel: v })} />
+              </div>
+              <TextField label="Harga saat kolom kosong" value={draft.catalogPage.priceFallback} onChange={(v) => patch("catalogPage", { priceFallback: v })} />
+              <TextArea label="Catatan di bawah grid produk" value={draft.catalogPage.note} onChange={(v) => patch("catalogPage", { note: v })} rows={2} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Judul saat hasil kosong" value={draft.catalogPage.emptyTitle} onChange={(v) => patch("catalogPage", { emptyTitle: v })} />
+                <TextArea label="Teks saat hasil kosong" value={draft.catalogPage.emptyBody} onChange={(v) => patch("catalogPage", { emptyBody: v })} rows={2} />
+              </div>
+
+              <p className="label mt-2">Halaman detail produk</p>
+              <TextField label="Tautan kembali ke katalog" value={draft.catalogPage.detailBack} onChange={(v) => patch("catalogPage", { detailBack: v })} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Judul blok deskripsi" value={draft.catalogPage.detailDescTitle} onChange={(v) => patch("catalogPage", { detailDescTitle: v })} />
+                <TextField label="Judul blok spesifikasi" value={draft.catalogPage.detailSpecsTitle} onChange={(v) => patch("catalogPage", { detailSpecsTitle: v })} />
+                <TextField label="Judul produk terkait" value={draft.catalogPage.detailRelatedTitle} onChange={(v) => patch("catalogPage", { detailRelatedTitle: v })} hint="Pisahkan dengan | untuk bagian orange." />
+                <TextField label="Tombol tanya produk" value={draft.catalogPage.detailCta} onChange={(v) => patch("catalogPage", { detailCta: v })} />
+              </div>
+              <TextField label="Tombol konsultasi" value={draft.catalogPage.detailConsult} onChange={(v) => patch("catalogPage", { detailConsult: v })} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Chip kepercayaan 1" value={draft.catalogPage.detailTrust1} onChange={(v) => patch("catalogPage", { detailTrust1: v })} />
+                <TextField label="Chip kepercayaan 2" value={draft.catalogPage.detailTrust2} onChange={(v) => patch("catalogPage", { detailTrust2: v })} />
+                <TextField label="Catatan ketersediaan" value={draft.catalogPage.detailStockNote} onChange={(v) => patch("catalogPage", { detailStockNote: v })} />
+                <TextField label="Tautan lihat semua produk" value={draft.catalogPage.detailAllLabel} onChange={(v) => patch("catalogPage", { detailAllLabel: v })} />
+              </div>
+
+              <p className="label mt-2">Pratinjau sosial &amp; SEO</p>
+              <ImageUpload label="Gambar pratinjau (OG)" value={draft.catalogPage.image} onChange={(url) => patch("catalogPage", { image: url })} />
+              <TextField label="Path gambar" value={draft.catalogPage.image} onChange={(v) => patch("catalogPage", { image: v })} hint="Dipakai bila produk belum punya gambar." />
+              <TextField label="Meta title" value={draft.catalogPage.seoTitle} onChange={(v) => patch("catalogPage", { seoTitle: v })} />
+              <TextArea label="Meta description" value={draft.catalogPage.seoDescription} onChange={(v) => patch("catalogPage", { seoDescription: v })} />
+            </>
+          )}
+
+          {tab === "contactPage" && (
+            <>
+              <p className="rounded-md bg-sand/70 px-4 py-3 text-[12.5px] leading-relaxed text-ink/60">
+                Isi halaman <b>/kontak</b>. Nomor WhatsApp &amp; email diambil dari menu Pengaturan; pesan yang dikirim pengunjung masuk ke menu Pesan Masuk.
+              </p>
+              <TextField label="Eyebrow" value={draft.contactPage.eyebrow} onChange={(v) => patch("contactPage", { eyebrow: v })} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Judul baris 1" value={draft.contactPage.title} onChange={(v) => patch("contactPage", { title: v })} />
+                <TextField label="Judul aksen (orange)" value={draft.contactPage.titleAccent} onChange={(v) => patch("contactPage", { titleAccent: v })} />
+              </div>
+              <TextArea label="Paragraf" value={draft.contactPage.body} onChange={(v) => patch("contactPage", { body: v })} rows={4} />
+
+              <p className="label mt-2">Kanal kontak (kartu di kanan hero)</p>
+              <Repeater
+                items={draft.contactPage.channels}
+                onChange={(channels) => patch("contactPage", { channels })}
+                empty={{ icon: "phone", title: "", lines: "", href: "" }}
+                render={(item, set) => (
+                  <div className="flex-1 space-y-3 rounded-md border border-line p-3.5">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <TextField label="Judul kartu" value={item.title} onChange={(v) => set({ ...item, title: v })} />
+                      <SelectField
+                        label="Ikon & sumber tautan"
+                        value={item.icon}
+                        onChange={(v) => set({ ...item, icon: v })}
+                        options={[
+                          { value: "wa", label: "WhatsApp (tautan ke nomor di Pengaturan)" },
+                          { value: "mail", label: "Email (tautan ke email di Pengaturan)" },
+                          { value: "phone", label: "Telepon (nomor WhatsApp as tel)" },
+                          { value: "clock", label: "Jam (tanpa tautan)" },
+                          { value: "pin", label: "Lokasi (tanpa tautan)" },
+                        ]}
+                      />
+                    </div>
+                    <TextArea label="Isi (baris baru = baris baru di kartu)" value={item.lines} onChange={(v) => set({ ...item, lines: v })} rows={2} />
+                    <TextField label="Tautan kustom (opsional)" value={item.href} onChange={(v) => set({ ...item, href: v })} hint="Kosongkan untuk memakai nomor WhatsApp/email dari Pengaturan." />
+                  </div>
+                )}
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Judul formulir" value={draft.contactPage.formTitle} onChange={(v) => patch("contactPage", { formTitle: v })} />
+                <TextField label="Teks tombol kirim" value={draft.contactPage.formSubmit} onChange={(v) => patch("contactPage", { formSubmit: v })} />
+              </div>
+              <TextArea label="Deskripsi formulir" value={draft.contactPage.formBody} onChange={(v) => patch("contactPage", { formBody: v })} rows={2} />
+              <TextArea label="Pesan setelah terkirim" value={draft.contactPage.formSuccess} onChange={(v) => patch("contactPage", { formSuccess: v })} rows={2} />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Judul alamat" value={draft.contactPage.addressTitle} onChange={(v) => patch("contactPage", { addressTitle: v })} />
+                <TextField label="Kueri peta Google Maps" value={draft.contactPage.mapsQuery} onChange={(v) => patch("contactPage", { mapsQuery: v })} hint="Alamat lengkap atau nama tempat, dipakai untuk embed peta." />
+              </div>
+              <TextArea label="Alamat" value={draft.contactPage.address} onChange={(v) => patch("contactPage", { address: v })} rows={2} />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField label="Judul jam operasional" value={draft.contactPage.hoursTitle} onChange={(v) => patch("contactPage", { hoursTitle: v })} />
+                <TextArea label="Jam operasional" value={draft.contactPage.hours} onChange={(v) => patch("contactPage", { hours: v })} rows={2} />
+              </div>
+
+              <TextField label="Judul FAQ" value={draft.contactPage.faqTitle} onChange={(v) => patch("contactPage", { faqTitle: v })} hint="Bagian setelah tanda | tampil orange." />
+              <TextArea label="Pengantar FAQ" value={draft.contactPage.faqBody} onChange={(v) => patch("contactPage", { faqBody: v })} rows={2} />
+              <p className="label mt-2">Daftar FAQ</p>
+              <Repeater
+                items={draft.contactPage.faqs}
+                onChange={(faqs) => patch("contactPage", { faqs })}
+                empty={{ q: "", a: "" }}
+                render={(item, set) => (
+                  <div className="flex-1 space-y-3 rounded-md border border-line p-3.5">
+                    <TextField label="Pertanyaan" value={item.q} onChange={(v) => set({ ...item, q: v })} />
+                    <TextArea label="Jawaban" value={item.a} onChange={(v) => set({ ...item, a: v })} rows={3} />
+                  </div>
+                )}
+              />
+
+              <TextField label="Meta title" value={draft.contactPage.seoTitle} onChange={(v) => patch("contactPage", { seoTitle: v })} />
+              <TextArea label="Meta description" value={draft.contactPage.seoDescription} onChange={(v) => patch("contactPage", { seoDescription: v })} />
             </>
           )}
 

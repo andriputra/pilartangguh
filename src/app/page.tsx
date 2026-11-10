@@ -39,6 +39,7 @@ export default async function HomePage() {
     prisma.portalLink.findMany({
       where: { published: true },
       orderBy: [{ order: "asc" }, { number: "asc" }],
+      include: { videos: { orderBy: { publishedAt: "desc" }, take: 1, select: { title: true, url: true } } },
     }),
   ]);
 

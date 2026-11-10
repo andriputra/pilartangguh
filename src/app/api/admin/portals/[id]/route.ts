@@ -10,8 +10,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (isResponse(g)) return g;
   const body = await req.json().catch(() => ({}));
   const data: Record<string, unknown> = {};
-  for (const key of ["title", "description", "url", "tag", "status"]) {
-    if (key in body) data[key] = body[key] === "" ? null : body[key];
+  for (const key of ["title", "description", "url", "tag", "status", "youtubeChannelId"]) {
+    if (key in body) data[key] = key === "youtubeChannelId" ? (body[key] ? String(body[key]).trim() : null) : body[key] === "" ? null : body[key];
   }
   if ("dark" in body) data.dark = Boolean(body.dark);
   if ("published" in body) data.published = Boolean(body.published);

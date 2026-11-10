@@ -21,8 +21,9 @@ export default function Footer({ footer, waUrl, contact }: { footer: SectionData
             <h3 className="text-sm font-bold">Navigasi</h3>
             <ul className="mt-4 space-y-2.5 text-sm text-white/55">
               <li><a href="/#profil" className="transition-colors hover:text-brand">Profil</a></li>
-              <li><a href="/#katalog" className="transition-colors hover:text-brand">Katalog</a></li>
+              <li><a href="/katalog" className="transition-colors hover:text-brand">Katalog</a></li>
               <li><a href="/#portal" className="transition-colors hover:text-brand">Portal tautan</a></li>
+              <li><a href="/kontak" className="transition-colors hover:text-brand">Kontak</a></li>
             </ul>
           </div>
           <div>

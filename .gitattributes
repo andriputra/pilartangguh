@@ -1,0 +1,4 @@
+# Script yang dijalankan di server (bash) wajib LF — ditulis dari Windows bisa CRLF dan gagal dieksekusi.
+*.sh text eol=lf
+*.mjs text eol=lf
+.github/workflows/*.yml text eol=lf

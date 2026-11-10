@@ -8,7 +8,8 @@ export async function getSections() {
     (map as any)[key] = DEFAULT_CONTENT[key];
   }
   for (const row of rows) {
-    if (row.key in map) (map as any)[row.key] = row.data;
+    // Merge di atas default: kunci baru di content.ts tetap terisi walau baris DB masih blob versi lama.
+    if (row.key in map) (map as any)[row.key] = { ...(map as any)[row.key], ...(row.data as object) };
   }
   return map;
 }

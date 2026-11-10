@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { guard, isResponse, slugify } from "@/lib/api";
+import { guard, isResponse, slugify, specList } from "@/lib/api";
 
 export async function GET() {
   const g = await guard();
@@ -27,6 +27,9 @@ export async function POST(req: NextRequest) {
       image: body.image || null,
       badge: body.badge || null,
       description: body.description || null,
+      code: body.code ? String(body.code) : null,
+      price: body.price ? String(body.price) : null,
+      specs: specList(body.specs),
       order: Number(body.order || 0),
       published: body.published !== false,
       categoryId: String(body.categoryId),
@@ -34,5 +37,6 @@ export async function POST(req: NextRequest) {
     include: { category: true },
   });
   revalidatePath("/");
+  revalidatePath("/katalog");
   return Response.json(product, { status: 201 });
 }

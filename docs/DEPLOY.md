@@ -1,120 +1,208 @@
 # Deploy PilarTangguh ke VPS (pilartangguh.co.id)
 
-Target: `203.194.114.127` · domain `pilartangguh.co.id` · shared server (sudah ada Caddy + PostgreSQL 127.0.0.1:5432 + app lain).
+Target: `203.194.114.127` · domain utama `https://pilartangguh.co.id` · server **shared**.
 
-**Prinsip: additive-only.** Jangan hentikan/restart service lain. Jangan ubah config Caddy/Postgres yang sudah ada — hanya tambahkan blok/file baru. RAM server 2GB, jadi build dilakukan dengan hemat.
+**Prinsip: additive-only.** Jangan hentikan/restart service lain, jangan mengubah blok Caddy/DB milik tetangga, selalu backup sebelum menyentuh config. RAM 2,2 GB + swap 2 GB — build dibatasi heap 1,5 GB.
+
+## Topologi nyata server (baca dulu)
+
+| Komponen | Bentuk nyata | Implikasi untuk deploy |
+| --- | --- | --- |
+| OS / resource | Ubuntu 24.04, 1 vCPU, 2,2 GB RAM, swapfile `/swapfile2` 2 GB | build pakai `NODE_OPTIONS=--max-old-space-size=1536` |
+| PostgreSQL 16 | container Docker **`validity-postgres`**, port hanya dipublish ke `127.0.0.1:5432`, superuser `validity_app` | app PilarTangguh memakai host `127.0.0.1:5432`; DB `pilartangguh` + role `pilartangguh` dibuat di cluster yang sama (tanpa install Postgres kedua) |
+| Caddy | container Docker **`validity-caddy`**, config read-only mount `/opt/validity/Caddyfile` | reload = `docker exec validity-caddy caddy reload …`, bukan `systemctl reload caddy` |
+| Jaringan | Caddy jalan di network bridge, jadi untuk menyentuh proses di host memakai IP gateway docker **`172.18.0.1`** (pola yang sudah dipakai `maternicare-api` via `172.17.0.1:3001`) | app Next harus bind `0.0.0.0:3100` + UFW `allow 3100/tcp from 172.16.0.0/12` |
+| Tetangga | `validity.pilartangguh.co.id` (container `validity-app:3000`), `maternicare.pilartangguh.co.id` (PM2 `maternicare-api`, static `/srv/maternicare-web`) | tidak boleh ikut restart; verifikasi mereka tetap 200 setelah deploy |
+| App PilarTangguh | PM2 di host: `pilartangguh` (web, port 3100) + `pilartangguh-poller` (RSS YouTube tiap 30 menit) | `pm2 save` agar ikut recovered saat reboot |
+
+Struktur folder di server:
+
+```
+/opt/pilartangguh/src   <- git checkout (npm ci, prisma, build, sumber poller)
+/opt/pilartangguh/app   <- runtime standalone Next (dijalankan PM2)
+/opt/pilartangguh/logs  <- log PM2
+/opt/pilartangguh/.env  <- rahasia produksi, chmod 600, di-symlink ke src & app
+/opt/pilartangguh-backups <- backup Caddyfile / ufw / pm2 / db sebelum perubahan
+```
 
 ---
 
 ## 0. DNS
 
-Pastikan A record `pilartangguh.co.id` → `203.194.114.127` (dan `www` jika perlu). Cek: `dig +short pilartangguh.co.id` dari server.
+A record `pilartangguh.co.id` (dan `www`) -> `203.194.114.127`. Cek dari server: `getent hosts pilartangguh.co.id`. Port 80/443 harus terbuka — Caddy sudah menanganinya untuk tetangga.
 
-## 1. Database (via SSH ke VPS)
+## 1. Database (reuse `validity-postgres`)
+
+Jalankan **di VPS**. Password dibuat di file, tidak lewat perintah interaktif:
 
 ```bash
-ssh root@203.194.114.127
+mkdir -p /opt/pilartangguh
+[ -f /opt/pilartangguh/.db_password ] || openssl rand -base64 24 | tr -d '/+=' > /opt/pilartangguh/.db_password
+chmod 600 /opt/pilartangguh/.db_password
 
-sudo -u postgres psql <<'SQL'
-CREATE USER pilartangguh WITH PASSWORD 'GANTI_PASSWORD_KUAT';
-CREATE DATABASE pilartangguh OWNER pilartangguh;
-GRANT ALL PRIVILEGES ON DATABASE pilartangguh TO pilartangguh;
+DB_PASS=$(cat /opt/pilartangguh/.db_password)
+
+docker exec validity-postgres psql -U validity_app -d postgres -v ON_ERROR_STOP=1 -At <<SQL
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'pilartangguh') THEN
+    CREATE ROLE pilartangguh LOGIN PASSWORD '${DB_PASS}';
+  ELSE
+    ALTER ROLE pilartangguh WITH LOGIN PASSWORD '${DB_PASS}';
+  END IF;
+END
+\$\$;
 SQL
+
+docker exec validity-postgres psql -U validity_app -d postgres -Atc \
+  "SELECT 1 FROM pg_database WHERE datname='pilartangguh'" < /dev/null | grep -q 1 || \
+  docker exec validity-postgres createdb -U validity_app -O pilartangguh pilartangguh < /dev/null
 ```
 
-Ganti password Postgres 18 di VPS — gunakan minimal 20 karakter acak:
-`openssl rand -base64 24`
+> Jangan pakai `docker exec -i` untuk perintah yang stdin-nya bukan skrip heredoc — `-i` menyedot sisa pipeline sehingga skrip berhenti diam-diam.
 
-## 2. Ambil kode & build
+Uji kredensial dari dalam cluster (5432 tidak dipublish ke jaringan, jadi koneksi dari mesin lain akan timeout):
 
 ```bash
-mkdir -p /opt/pilartangguh && cd /opt/pilartangguh
-git clone git@github.com:<owner>/pilartangguh.git src   # atau rsync dari laptop
-cd src
+docker exec validity-postgres psql "postgresql://pilartangguh:${DB_PASS}@127.0.0.1:5432/pilartangguh" \
+  -Atc "SELECT 'connect ok: ' || current_database() || ' as ' || current_user" < /dev/null
+```
 
-# .env produksi — JANGAN commit
-cat > .env <<'ENV'
-DATABASE_URL="postgresql://pilartangguh:GANTI_PASSWORD_KUAT@127.0.0.1:5432/pilartangguh?schema=public"
-AUTH_SECRET="GANTI_DENGAN_openssl_rand_base64_32"
+## 2. File `.env` produksi (di VPS, jangan commit)
+
+```bash
+umask 077
+cat > /opt/pilartangguh/.env <<ENV
+DATABASE_URL="postgresql://pilartangguh:$(cat /opt/pilartangguh/.db_password)@127.0.0.1:5432/pilartangguh?schema=public"
+AUTH_SECRET="$(openssl rand -base64 32)"
 NEXT_PUBLIC_SITE_URL="https://pilartangguh.co.id"
 SEED_ADMIN_EMAIL="admin@pilartangguh.co.id"
-SEED_ADMIN_PASSWORD="GANTI_PASSWORD_ADMIN_CMS"
+SEED_ADMIN_PASSWORD="$(openssl rand -hex 8)"
+FONNTE_TOKEN=""
+FONNTE_TARGET=""
+FONNTE_URL="https://api.fonnte.com/send"
 ENV
-
-npm ci --no-audit --no-fund
-npx prisma generate
-npx prisma db push
-npm run build
-npx tsx prisma/seed.ts
+chmod 600 /opt/pilartangguh/.env
 ```
 
-> Catatan: `npm ci` + `next build` makan ±1GB RAM. Jika OOM, matikan sementara build app lain atau naikkan swap.
+Password login CMS = nilai `SEED_ADMIN_PASSWORD` di file tersebut (`grep '^SEED_ADMIN_PASSWORD' /opt/pilartangguh/.env`). Seed hanya dijalankan sekali (marker `/opt/pilartangguh/.seeded`), jadi mengubah nilai ini setelah seed pertama tidak mengubah password admin — ganti lewat CMS.
 
-## 3. Susun folder runtime standalone
+## 3. Build + jalankan (skrip)
+
+`scripts/deploy-vps.sh` melakukan langkah 3–7 secara idempoten: pull `origin/main` (berhenti kalau working tree server kotor), symlink `.env` ke `src` dan `app`, `npm ci`, `prisma generate`, `prisma db push`, `next build` dengan heap dibatasi, susun folder `app/` (rsync `--exclude uploads` supaya gambar hasil upload tidak pernah hilang), seed sekali, `pm2 startOrReload --update-env` + `pm2 save`, lalu health check `/`, `/katalog`, `/kontak`, `/admin/login`.
 
 ```bash
-mkdir -p /opt/pilartangguh/app /opt/pilartangguh/logs
-cp -r .next/standalone/. /opt/pilartangguh/app/
-cp -r .next/static /opt/pilartangguh/app/.next/static
-cp -r public /opt/pilartangguh/app/public
-cp .env /opt/pilartangguh/app/.env
-cp ecosystem.config.js /opt/pilartangguh/
+# di VPS
+git clone --branch main https://github.com/andriputra/pilartangguh.git /opt/pilartangguh/src
+bash /opt/pilartangguh/src/scripts/deploy-vps.sh
 ```
 
-`ecosystem.config.js` menaruh app di port **3100** (127.0.0.1 saja, tidak dibuka di UFW — diakses lewat Caddy).
+Repo harus sudah di-push. Branch lain: `DEPLOY_BRANCH=xxx bash scripts/deploy-vps.sh` (GitHub Actions mengirim variabel ini lewat input *Run workflow*).
 
-## 4. PM2
+## 4. Caddy: arahkan domain utama ke app
+
+Backup **sebelum** mengedit. Hanya blok apex (yang sekarang redirect sementara ke validity) yang berubah — blok lain dibiarkan utuh:
 
 ```bash
-pm2 start /opt/pilartangguh/ecosystem.config.js
-pm2 save
-pm2 logs pilartangguh --lines 30   # harus "Ready on http://127.0.0.1:3100"
-curl -sI http://127.0.0.1:3100     # harus 200
+# di VPS
+TS=$(date +%F-%H%M); mkdir -p /opt/pilartangguh-backups
+cp -a /opt/validity/Caddyfile "/opt/pilartangguh-backups/Caddyfile.$TS"
 ```
 
-## 5. Caddy (reverse proxy + auto-HTTPS)
+Ganti blok ini di `/opt/validity/Caddyfile`:
 
-Tambahkan blok **baru** di Caddyfile (jangan hapus site block lain). Backup dulu:
-
-```bash
-cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak-$(date +%F)
-
-cat >> /etc/caddy/Caddyfile <<'CADDY'
-
+```
 pilartangguh.co.id, www.pilartangguh.co.id {
-    encode gzip zstd
-    reverse_proxy 127.0.0.1:3100
+	redir https://validity.pilartangguh.co.id{uri} permanent
 }
-CADDY
-
-caddy validate --config /etc/caddy/Caddyfile
-systemctl reload caddy
 ```
 
-Caddy otomatis minta sertifikat Let's Encrypt saat request pertama (butuh port 80/443 terbuka & DNS sudah mengarah).
+menjadi:
+
+```
+pilartangguh.co.id, www.pilartangguh.co.id {
+	encode gzip zstd
+	reverse_proxy 172.18.0.1:3100
+}
+```
+
+Lalu:
+
+```bash
+# di VPS
+ufw allow 3100/tcp from 172.16.0.0/12 comment 'docker caddy to pilartangguh'
+docker exec validity-caddy caddy validate --config /Caddyfile
+docker exec validity-caddy caddy reload --config /Caddyfile
+```
+
+`172.18.0.1` = IP gateway network tempat `validity-caddy` berada. Cek bila berubah:
+
+```bash
+docker network inspect $(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' validity-caddy) \
+  -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}'
+```
+
+Sertifikat Let's Encrypt apex sudah terbit saat blok redirect aktif, jadi HTTPS langsung jalan tanpa menunggu issuance.
+
+## 5. PM2
+
+```bash
+pm2 ls                                  # pilartangguh (online) + pilartangguh-poller (cron)
+pm2 logs pilartangguh --lines 30        # "Ready on http://0.0.0.0:3100"
+curl -sI http://127.0.0.1:3100          # 200
+pm2 logs pilartangguh-poller --lines 10 --nostream
+```
+
+> **Poller YouTube**: `pilartangguh-poller` menjalankan `scripts/poll-youtube.mjs` dari `/opt/pilartangguh/src` tiap 30 menit (butuh `node_modules` + `.env` di sana). Isi **YouTube Channel ID** per podcast lewat CMS → Portal Tautan. Notifikasi WA hanya aktif bila `FONNTE_TOKEN` diisi; tanpa itu cukup bell CMS. Cek manual: `cd /opt/pilartangguh/src && node scripts/poll-youtube.mjs`.
 
 ## 6. Verifikasi
 
 - `https://pilartangguh.co.id` → landing tampil, tombol WA mengarah ke nomor seed.
+- `https://pilartangguh.co.id/katalog` → kop ringkas + statistik kategori/produk, sidebar kategori dengan jumlah item (di layar kecil jadi chip), sakelar Grid/List, pemilih urutan, pencarian nama/kode/spesifikasi, paginasi, kartu produk menampilkan chip kode + 3 poin spesifikasi + harga, tombol "Tanya" dan judul produk membuka halaman detail.
+- `https://pilartangguh.co.id/katalog/helm-safety-pro` → gambar, kode, blok harga + dua tombol WA, tabel spesifikasi, 3 produk terkait. Slug lain / produk disembunyikan → 404.
+- `https://pilartangguh.co.id/kontak` → kartu kanal (WA/email/jam), peta Google Maps termuat, FAQ terbuka-tutup, kirim formulir → muncul di CMS → Pesan Masuk + bell notifikasi.
+  - Kalau POST `/api/contact` balas 500: cek `pm2 logs pilartangguh` — biasanya tabel `ContactMessage` belum dibuat (`npx prisma db push`).
 - `https://pilartangguh.co.id/admin/login` → login dengan `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`.
-- Edit satu section di CMS → refresh halaman → konten berubah.
-- Upload gambar produk → file muncul di `/opt/pilartangguh/app/public/uploads/`.
+- Edit satu section di CMS (termasuk tab Halaman Katalog / Halaman Kontak) → refresh halaman → konten berubah.
+- Upload gambar produk → file muncul di `/opt/pilartangguh/app/public/uploads/` dan **tetap ada** setelah deploy berikutnya.
+- **Tetangga tidak terganggu**: `https://validity.pilartangguh.co.id` dan `https://maternicare.pilartangguh.co.id` tetap 200, container `validity-*` tidak pernah di-restart.
 
-## 7. Update versi berikutnya
+## 7. Auto-deploy (GitHub Actions -> VPS)
+
+`.github/workflows/deploy.yml` jalan saat push ke `main` (bisa juga manual lewat *Run workflow*). Ia SSH ke VPS sebagai `root` lalu memanggil `scripts/deploy-vps.sh`.
+
+Secrets yang perlu diisi di **GitHub -> repo -> Settings -> Secrets and variables -> Actions**:
+
+| Secret | Nilai |
+| --- | --- |
+| `VPS_HOST` | `203.194.114.127` |
+| `VPS_USER` | `root` |
+| `SSH_PRIVATE_KEY` | isi penuh private key yang sudah diotorisasi di server (di laptop: `~/.ssh/github-actions-vps`) |
+
+> Key harus ber-newline LF dan sudah ada di `authorized_keys` `root@VPS`. Kalau digantikan key baru, tempel public key-nya ke server. Deploy via Actions dan via SSH manual memakai skrip yang sama, jadi keduanya idempoten.
+
+## 8. Update manual (tanpa Actions)
 
 ```bash
-cd /opt/pilartangguh/src && git pull
-npm ci && npx prisma generate && npx prisma db push && npm run build
-# JANGAN hapus /opt/pilartangguh/app/public/uploads — salinan baru:
-rsync -a --delete --exclude 'uploads' public/ /opt/pilartangguh/app/public/
-rsync -a .next/standalone/. /opt/pilartangguh/app/
-rsync -a --delete .next/static/ /opt/pilartangguh/app/.next/static/
-pm2 reload pilartangguh
+# di VPS
+bash /opt/pilartangguh/src/scripts/deploy-vps.sh
 ```
 
-## Backup
+> `db push` menambah kolom katalog (`code`, `price`, `specs String[]`) tanpa menghapus data. Produk lama nilainya kosong → spesifikasi tidak dirender dan harga menampilkan teks fallback; isi per produk lewat CMS → Produk & Kategori. Seed (`prisma/seed.ts`) hanya mengisi produk yang **baru dibuat**, jadi jangan andalkan seed untuk melengkapi produk yang sudah tayang.
+
+## 9. Backup & rollback
 
 ```bash
-sudo -u postgres pg_dump pilartangguh > /opt/pilartangguh/backup-db-$(date +%F).sql
-tar czf /opt/pilartangguh/backup-uploads-$(date +%F).tar.gz -C /opt/pilartangguh/app public/uploads
+# di VPS — sebelum menyentuh Caddy/DB
+mkdir -p /opt/pilartangguh-backups
+cp -a /opt/validity/Caddyfile /opt/pilartangguh-backups/Caddyfile.$(date +%F-%H%M)
+docker exec validity-postgres pg_dump -U validity_app pilartangguh > /opt/pilartangguh-backups/db-$(date +%F).sql
+tar czf /opt/pilartangguh-backups/uploads-$(date +%F).tar.gz -C /opt/pilartangguh/app public/uploads
+
+# rollback Caddy
+cp -a /opt/pilartangguh-backups/Caddyfile.<TS> /opt/validity/Caddyfile
+docker exec validity-caddy caddy reload --config /Caddyfile
+
+# rollback kode
+cd /opt/pilartangguh/src && git checkout <sha> && bash scripts/deploy-vps.sh
 ```

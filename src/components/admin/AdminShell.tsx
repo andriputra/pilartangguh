@@ -6,12 +6,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { ToastProvider } from "@/components/admin/ui";
+import NotificationBell from "@/components/admin/NotificationBell";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: "▦" },
   { href: "/admin/content", label: "Konten Landing", icon: "✎" },
   { href: "/admin/products", label: "Produk & Kategori", icon: "⬢" },
   { href: "/admin/portals", label: "Portal Tautan", icon: "⌘" },
+  { href: "/admin/messages", label: "Pesan Masuk", icon: "✉" },
   { href: "/admin/settings", label: "Pengaturan", icon: "⚙" },
 ];
 
@@ -44,6 +46,7 @@ export default function AdminShell({ children, userName }: { children: ReactNode
           </Link>
         );
       })}
+      <NotificationBell />
     </nav>
   );
 

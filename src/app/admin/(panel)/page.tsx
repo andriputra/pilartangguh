@@ -6,29 +6,34 @@ export const dynamic = "force-dynamic";
 
 const QUICK = [
   { href: "/admin/content", title: "Konten Landing", desc: "Edit teks & gambar semua section halaman depan." },
-  { href: "/admin/products", title: "Produk & Kategori", desc: "Kelola katalog peralatan keselamatan beserta filter kategorinya." },
+  { href: "/admin/products", title: "Produk & Kategori", desc: "Kelola katalog peralatan beserta filter kategori di halaman /katalog." },
   { href: "/admin/portals", title: "Portal Tautan", desc: "Kelola kartu jaringan PilarTangguh (online / segera hadir)." },
+  { href: "/admin/messages", title: "Pesan Masuk", desc: "Baca dan balas pesan dari formulir halaman /kontak." },
   { href: "/admin/settings", title: "Pengaturan", desc: "Nomor WhatsApp, pesan default, dan kontak." },
 ];
 
 export default async function AdminDashboard() {
-  const [products, categories, portals, contents] = await Promise.all([
+  const [products, categories, portals, contents, messages, unreadMessages] = await Promise.all([
     prisma.product.count(),
     prisma.category.count(),
     prisma.portalLink.count(),
     prisma.siteContent.count(),
+    prisma.contactMessage.count(),
+    prisma.contactMessage.count({ where: { read: false } }),
   ]);
 
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title="Dashboard" subtitle="Ringkasan konten website pilartangguh.co.id" />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
           { label: "Section konten", value: contents },
           { label: "Produk", value: products },
           { label: "Kategori", value: categories },
           { label: "Portal tautan", value: portals },
+          { label: "Pesan masuk", value: messages },
+          { label: "Belum dibaca", value: unreadMessages },
         ].map((s) => (
           <div key={s.label} className="rounded-lg border border-line bg-white px-4 py-4 shadow-card">
             <p className="font-display text-2xl font-extrabold text-brand">{s.value}</p>

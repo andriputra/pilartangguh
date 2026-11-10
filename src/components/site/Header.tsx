@@ -3,16 +3,19 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { CloseIcon, MenuIcon } from "./icons";
 
 const NAV = [
-  { href: "/#profil", label: "Profil" },
-  { href: "/#katalog", label: "Katalog" },
-  { href: "/#portal", label: "Portal tautan" },
+  { href: "/#profil", label: "Profil", section: true },
+  { href: "/katalog", label: "Katalog", section: false },
+  { href: "/#portal", label: "Portal", section: true },
+  { href: "/kontak", label: "Kontak", section: false },
 ];
 
 export default function Header({ waUrl }: { waUrl: string }) {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -41,15 +44,23 @@ export default function Header({ waUrl }: { waUrl: string }) {
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
-          {NAV.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="text-sm font-medium text-ink/70 transition-colors hover:text-brand"
-            >
-              {item.label}
-            </a>
-          ))}
+          {NAV.map((item) => {
+            const active = !item.section && pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`relative text-sm font-medium transition-colors hover:text-brand ${
+                  active ? "text-brand" : "text-ink/70"
+                }`}
+              >
+                {item.label}
+                {active && (
+                  <motion.span layoutId="nav-underline" className="absolute -bottom-2 left-0 h-[2px] w-full rounded-full bg-brand" />
+                )}
+              </Link>
+            );
+          })}
           <a
             href={waUrl}
             target="_blank"
@@ -77,14 +88,16 @@ export default function Header({ waUrl }: { waUrl: string }) {
           className="border-b border-line bg-cream px-5 pb-4 pt-2 md:hidden"
         >
           {NAV.map((item) => (
-            <a
+            <Link
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
-              className="block border-b border-line/60 py-3 text-sm font-medium last:border-0"
+              className={`block border-b border-line/60 py-3 text-sm font-medium last:border-0 ${
+                !item.section && pathname === item.href ? "text-brand" : ""
+              }`}
             >
               {item.label}
-            </a>
+            </Link>
           ))}
           <a href={waUrl} target="_blank" rel="noopener noreferrer" className="btn-primary mt-3 w-full justify-center">
             Hubungi kami

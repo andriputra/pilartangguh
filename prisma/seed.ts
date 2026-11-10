@@ -58,6 +58,8 @@ async function main() {
       category: "kepala",
       image: "/images/products/helm.jpg",
       description: "Helm safety dengan cangkang tahan benturan dan busa peredam ganda.",
+      code: "PTG-HLM-001",
+      specs: ["Cangkang tahan benturan", "Busa peredam ganda", "Warna: orange"],
     },
     {
       name: "Rompi High Visibility",
@@ -66,6 +68,8 @@ async function main() {
       category: "visibility",
       image: "/images/products/rompi.jpg",
       description: "Rompi reflektif untuk visibilitas maksimal di area kerja dan gudang.",
+      code: "PTG-RMV-001",
+      specs: ["Bahan polyester ringan", "Pita reflektif depan belakang", "Warna: kuning hi-vis"],
     },
     {
       name: "Sepatu Safety Defender",
@@ -74,6 +78,8 @@ async function main() {
       category: "kaki",
       image: "/images/products/sepatu.jpg",
       description: "Sepatu safety dengan pelat baja, sol anti-slip, dan kenyamanan harian.",
+      code: "PTG-STP-001",
+      specs: ["Pelat baja proteksi jari", "Sol anti-slip", "Model: ankle boot"],
     },
     {
       name: "Sarung Tangan Guard",
@@ -82,6 +88,8 @@ async function main() {
       category: "tangan",
       image: "/images/products/sarung.jpg",
       description: "Sarung tangan kerja dengan grip kuat dan proteksi abrasi.",
+      code: "PTG-SRG-001",
+      specs: ["Lapisan grip pada telapak", "Proteksi abrasi", "Warna: orange hitam"],
     },
   ];
   for (let i = 0; i < products.length; i++) {
@@ -95,6 +103,8 @@ async function main() {
         badge: p.badge,
         image: p.image,
         description: p.description,
+        code: p.code,
+        specs: p.specs,
         order: i,
         categoryId: catIds[p.category],
       },
