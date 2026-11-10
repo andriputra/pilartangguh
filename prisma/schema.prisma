@@ -54,6 +54,7 @@ model PortalLink {
   title       String
   description String
   url         String?
+  tag         String?
   status      String   @default("ONLINE")
   number      Int      @default(1)
   dark        Boolean  @default(false)

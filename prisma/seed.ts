@@ -101,7 +101,7 @@ async function main() {
     });
   }
 
-  const portals = [
+  const portals: { title: string; description: string; url: string; tag?: string; status: string; dark: boolean; number: number }[] = [
     {
       title: "Agen Benang Bandung",
       description: "Portal kebutuhan benang dan tekstil",
@@ -122,6 +122,7 @@ async function main() {
       title: "RWCaper",
       description: "Area portal mitra RWCaper",
       url: "",
+      tag: "Podcast",
       status: "SEGERA HADIR",
       dark: false,
       number: 3,
@@ -130,6 +131,7 @@ async function main() {
       title: "Bincang TPT",
       description: "Ruang diskusi tekstil dan produk",
       url: "",
+      tag: "Podcast",
       status: "SEGERA HADIR",
       dark: false,
       number: 4,
@@ -139,7 +141,7 @@ async function main() {
     const p = portals[i];
     const existing = await prisma.portalLink.findFirst({ where: { title: p.title } });
     if (existing) {
-      await prisma.portalLink.update({ where: { id: existing.id }, data: { order: i } });
+      await prisma.portalLink.update({ where: { id: existing.id }, data: { order: i, tag: p.tag } });
     } else {
       await prisma.portalLink.create({ data: { ...p, order: i } });
     }

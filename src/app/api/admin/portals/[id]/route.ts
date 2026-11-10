@@ -10,7 +10,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (isResponse(g)) return g;
   const body = await req.json().catch(() => ({}));
   const data: Record<string, unknown> = {};
-  for (const key of ["title", "description", "url", "status"]) {
+  for (const key of ["title", "description", "url", "tag", "status"]) {
     if (key in body) data[key] = body[key] === "" ? null : body[key];
   }
   if ("dark" in body) data.dark = Boolean(body.dark);

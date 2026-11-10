@@ -7,6 +7,7 @@ export type PortalItem = {
   title: string;
   description: string;
   url: string | null;
+  tag: string | null;
   status: string;
   number: number;
   dark: boolean;
@@ -45,6 +46,11 @@ export default function Network({ network, portals }: { network: SectionData["ne
                     <span className={`flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.18em] ${p.dark ? "text-white/70" : "text-ink/50"}`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${online ? "bg-emerald-500" : "bg-brand"}`} />
                       {p.status}
+                      {p.tag && (
+                        <span className={`ml-1 rounded-sm border px-1.5 py-0.5 tracking-[0.12em] ${p.dark ? "border-white/20 text-white/70" : "border-line text-ink/50"}`}>
+                          {p.tag}
+                        </span>
+                      )}
                     </span>
                     <span className="font-display text-sm font-extrabold text-brand">
                       {String(p.number).padStart(2, "0")}

@@ -19,6 +19,7 @@ type Portal = {
   title: string;
   description: string;
   url: string | null;
+  tag: string | null;
   status: string;
   number: number;
   dark: boolean;
@@ -30,6 +31,7 @@ const BLANK: Omit<Portal, "id" | "order"> = {
   title: "",
   description: "",
   url: "",
+  tag: "",
   status: "ONLINE",
   number: 1,
   dark: false,
@@ -123,7 +125,7 @@ export default function PortalsAdmin() {
                   type="button"
                   onClick={() => {
                     setIsNew(false);
-                    setEditing({ ...p, url: p.url || "" });
+                    setEditing({ ...p, url: p.url || "", tag: p.tag || "" });
                   }}
                   className="rounded-md px-2.5 py-1 text-xs font-bold hover:bg-sand"
                 >
@@ -156,6 +158,7 @@ export default function PortalsAdmin() {
               <TextArea label="Deskripsi singkat" value={editing.description} onChange={(v) => setEditing({ ...editing, description: v })} rows={2} />
             </div>
             <TextField label="URL (kosongkan jika belum hadir)" value={editing.url || ""} onChange={(v) => setEditing({ ...editing, url: v })} placeholder="https://…" />
+            <TextField label="Label tag (opsional)" value={editing.tag || ""} onChange={(v) => setEditing({ ...editing, tag: v })} placeholder="mis. Podcast" hint="Chip kecil di samping status pada kartu, mis. Podcast / Marketplace." />
             <TextField label="Nomor kartu" type="number" value={String(editing.number)} onChange={(v) => setEditing({ ...editing, number: Number(v) || 1 })} />
             <Toggle label="Kartu gelap (hitam)" value={editing.dark} onChange={(v) => setEditing({ ...editing, dark: v })} />
             <Toggle label="Tampil di halaman" value={editing.published} onChange={(v) => setEditing({ ...editing, published: v })} />

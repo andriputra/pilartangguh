@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
       title: String(body.title),
       description: String(body.description || ""),
       url: body.url ? String(body.url) : null,
+      tag: body.tag ? String(body.tag) : null,
       status: body.status === "SEGERA HADIR" ? "SEGERA HADIR" : "ONLINE",
       number: Number(body.number || count + 1),
       dark: Boolean(body.dark),

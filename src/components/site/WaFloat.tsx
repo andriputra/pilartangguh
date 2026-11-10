@@ -14,7 +14,7 @@ export default function WaFloat({ waUrl, label }: { waUrl: string; label: string
       transition={{ delay: 1.2, duration: 0.5 }}
       whileHover={{ scale: 1.04 }}
       whileTap={{ scale: 0.96 }}
-      className="fixed right-4 top-1/2 z-40 -translate-y-1/2 sm:right-6"
+      className="fixed right-4 bottom-20 z-40 -translate-y-1/2 sm:right-6"
       aria-label={label}
     >
       <span className="flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white shadow-lift">
