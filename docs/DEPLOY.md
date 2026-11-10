@@ -109,7 +109,7 @@ TS=$(date +%F-%H%M); mkdir -p /opt/pilartangguh-backups
 cp -a /opt/validity/Caddyfile "/opt/pilartangguh-backups/Caddyfile.$TS"
 ```
 
-Ganti blok ini di `/opt/validity/Caddyfile`:
+Ganti blok ini di `/opt/validity/Caddyfile` (baris 6-10, backup ada di `/opt/pilartangguh-backups/`):
 
 ```
 pilartangguh.co.id, www.pilartangguh.co.id {
@@ -130,12 +130,19 @@ Lalu:
 
 ```bash
 # di VPS
-ufw allow 3100/tcp from 172.16.0.0/12 comment 'docker caddy to pilartangguh'
-docker exec validity-caddy caddy validate --config /Caddyfile
-docker exec validity-caddy caddy reload --config /Caddyfile
+ufw allow from 172.16.0.0/12 to any port 3100 proto tcp comment 'docker caddy to pilartangguh'
+docker exec validity-caddy caddy validate --config /etc/caddy/Caddyfile
+docker exec validity-caddy caddy reload --config /etc/caddy/Caddyfile
 ```
 
-`172.18.0.1` = IP gateway network tempat `validity-caddy` berada. Cek bila berubah:
+> **Gotcha penting:** `/opt/validity/Caddyfile` di-bind-mount **satu file** (ro) ke `/etc/caddy/Caddyfile` di container. Container menyimpan *inode*, bukan path. Jadi:
+>
+> - **Selalu tulis in-place** — `cp Caddyfile.new /opt/validity/Caddyfile` atau editor yang menyimpan ke file yang sama. Jangan `mv` (mengganti inode), jangan `rsync --inplace` yang membuat file sementara.
+> - Tanda inode sudah tertukar: isi host & isi mount berbeda → `stat -c %i /opt/validity/Caddyfile` vs `docker exec validity-caddy stat -c %i /etc/caddy/Caddyfile` (atau bandingkan `sed -n '6,11p'` keduanya).
+> - Kalau terlanjur `mv`: `docker exec validity-caddy caddy reload --config <tmp>` **hanya** memperbaiki config yang sedang jalan; setiap restart/update container akan memuat inode lama lagi. Pemulihan permanen = recreate mount dengan `docker restart validity-caddy` (beberapa detik, proxy validity + maternicare ikut tersendat sebentar) — mintakan izin dulu karena ini service bersama.
+> - `docker cp validity-caddy:/etc/caddy/Caddyfile …` bisa menipu: ia mengikuti path source mount di host, jadi isinya bisa terlihat "sudah baru" padahal inode di container masih lama. Bandingkan lewat `stat`/`sed` di dalam container, bukan `docker cp`.
+
+`172.18.0.1` = IP gateway network tempat `validity-caddy` berada (terverifikasi: `docker inspect -f {{json .NetworkSettings.Networks}} validity-caddy` → `Gateway: 172.18.0.1`). Cek bila berubah:
 
 ```bash
 docker network inspect $(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}' validity-caddy) \
@@ -148,12 +155,14 @@ Sertifikat Let's Encrypt apex sudah terbit saat blok redirect aktif, jadi HTTPS 
 
 ```bash
 pm2 ls                                  # pilartangguh (online) + pilartangguh-poller (cron)
-pm2 logs pilartangguh --lines 30        # "Ready on http://0.0.0.0:3100"
 curl -sI http://127.0.0.1:3100          # 200
-pm2 logs pilartangguh-poller --lines 10 --nostream
+tail -30 /root/.pm2/logs/pilartangguh-out.log   # "Ready on http://0.0.0.0:3100"
+tail -10 /opt/pilartangguh/logs/poller-out.log
 ```
 
-> **Poller YouTube**: `pilartangguh-poller` menjalankan `scripts/poll-youtube.mjs` dari `/opt/pilartangguh/src` tiap 30 menit (butuh `node_modules` + `.env` di sana). Isi **YouTube Channel ID** per podcast lewat CMS → Portal Tautan. Notifikasi WA hanya aktif bila `FONNTE_TOKEN` diisi; tanpa itu cukup bell CMS. Cek manual: `cd /opt/pilartangguh/src && node scripts/poll-youtube.mjs`.
+> `pm2 logs` bisa menunggu (mode tail) meskipun `--nostream` dipakai — untuk cek cepat lewat SSH lebih baik `tail` file log-nya langsung.
+
+> **Poller YouTube**: `pilartangguh-poller` menjalankan `scripts/poll-youtube.mjs` dari `/opt/pilartangguh/src` tiap 30 menit (butuh `node_modules` + `.env` di sana). Wajar kalau `pm2 ls` menampilkannya **stopped** — ini batch job: jalan, selesai, lalu `cron_restart` menaikkan lagi tiap 30 menit. Isi **YouTube Channel ID** per podcast lewat CMS → Portal Tautan; selama belum ada, log berisi "Belum ada portal dengan YouTube Channel ID — lewati polling." Notifikasi WA hanya aktif bila `FONNTE_TOKEN` diisi; tanpa itu cukup bell CMS. Cek manual: `cd /opt/pilartangguh/src && node scripts/poll-youtube.mjs`.
 
 ## 6. Verifikasi
 
@@ -199,9 +208,9 @@ cp -a /opt/validity/Caddyfile /opt/pilartangguh-backups/Caddyfile.$(date +%F-%H%
 docker exec validity-postgres pg_dump -U validity_app pilartangguh > /opt/pilartangguh-backups/db-$(date +%F).sql
 tar czf /opt/pilartangguh-backups/uploads-$(date +%F).tar.gz -C /opt/pilartangguh/app public/uploads
 
-# rollback Caddy
+# rollback Caddy (cp = tulis in-place, inode mount ikut terupdate; jangan mv)
 cp -a /opt/pilartangguh-backups/Caddyfile.<TS> /opt/validity/Caddyfile
-docker exec validity-caddy caddy reload --config /Caddyfile
+docker exec validity-caddy caddy reload --config /etc/caddy/Caddyfile
 
 # rollback kode
 cd /opt/pilartangguh/src && git checkout <sha> && bash scripts/deploy-vps.sh
