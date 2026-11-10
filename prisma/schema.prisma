@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// One row per editable landing-page section; `data` is the section JSON blob.
+/// Keys: hero, marquee, about, aboutIntro, catalog, catalogIntro, network, networkIntro, cta, footer, seo
+model SiteContent {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id       String     @id @default(cuid())
+  slug     String     @unique
+  name     String
+  order    Int        @default(0)
+  products Product[]
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  image       String?
+  badge       String?
+  description String?
+  order       Int       @default(0)
+  published   Boolean   @default(true)
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model PortalLink {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  url         String?
+  status      String   @default("ONLINE")
+  number      Int      @default(1)
+  dark        Boolean  @default(false)
+  order       Int      @default(0)
+  published   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// Simple key/value store: whatsapp_number, whatsapp_message, chat_label, contact_email, ...
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
