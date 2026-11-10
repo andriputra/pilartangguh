@@ -58,9 +58,10 @@ NODE_OPTIONS=--max-old-space-size=1536 npm run build
 
 log "5. susun folder runtime (uploads dipertahankan)"
 mkdir -p "$APP/.next" "$APP/public/uploads"
-rsync -a --delete --exclude 'uploads' --exclude '.env' .next/standalone/ "$APP/"
+rsync -a --delete --exclude '/public/uploads/' --exclude '.env' .next/standalone/ "$APP/"
 rsync -a --delete .next/static/ "$APP/.next/static/"
-rsync -a --delete --exclude 'uploads' public/ "$APP/public/"
+rsync -a --delete --exclude '/uploads/' public/ "$APP/public/"
+[ -f "$APP/.next/server/app/uploads/[filename]/route.js" ] || { echo "route upload hilang dari runtime — deploy dibatalkan"; exit 1; }
 mkdir -p "$APP/prisma" "$APP/node_modules"
 cp -f prisma/schema.prisma "$APP/prisma/schema.prisma"
 if [ -d node_modules/.prisma/client ]; then
@@ -93,5 +94,6 @@ for p in /katalog /kontak /admin/login; do
   echo "  GET $p -> $(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT$p")"
 done
 [ "$CODE" = "200" ] || { echo "app belum menjawab 200 di port $PORT — cek: pm2 logs pilartangguh --lines 60"; exit 1; }
+node "$SRC/scripts/check-upload-runtime.mjs" "$APP" "http://127.0.0.1:$PORT"
 echo
 echo "OK DEPLOY $(git log --oneline -1)"
