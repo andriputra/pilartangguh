@@ -23,9 +23,7 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
   const id = `${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
   const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadsDir, { recursive: true });
-
-  let filename = `${id}.webp`;
+  const filename = `${id}.webp`;
   let data: Buffer;
   try {
     data = await sharp(buffer)
@@ -34,15 +32,10 @@ export async function POST(req: NextRequest) {
       .webp({ quality: 82 })
       .toBuffer();
   } catch {
-    const ext = path.extname(file.name || "").toLowerCase();
-    const allowed = [".jpg", ".jpeg", ".png", ".webp", ".svg", ".gif"];
-    if (!allowed.includes(ext)) {
-      return Response.json({ error: "Format gambar tidak didukung" }, { status: 400 });
-    }
-    filename = id + ext;
-    data = buffer;
+    return Response.json({ error: "Format gambar tidak didukung" }, { status: 400 });
   }
 
+  await mkdir(uploadsDir, { recursive: true });
   await writeFile(path.join(uploadsDir, filename), data);
   return Response.json({ url: `/uploads/${filename}` });
 }
