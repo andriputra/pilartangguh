@@ -23,7 +23,7 @@ export default async function AdminDashboard() {
   ]);
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="w-full">
       <PageHeader title="Dashboard" subtitle="Ringkasan konten website pilartangguh.co.id" />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
