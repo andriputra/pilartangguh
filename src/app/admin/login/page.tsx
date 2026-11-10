@@ -24,7 +24,8 @@ function LoginForm() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Login gagal");
-      router.push(params.get("next") || "/admin");
+      const next = params.get("next");
+      router.push(next && /^\/admin(?:\/|$|\?)/.test(next) ? next : "/admin");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login gagal");
@@ -43,13 +44,14 @@ function LoginForm() {
       </div>
 
       <div className="mt-6 space-y-4">
+        {params.get("passwordChanged") === "1" && <p role="status" className="rounded-md border border-line bg-sand px-3 py-2 text-xs text-ink/80">Password berhasil diubah. Silakan masuk kembali dengan password baru.</p>}
         <div>
-          <label className="label">Email</label>
-          <input type="email" required autoComplete="username" className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@pilartangguh.co.id" />
+          <label className="label" htmlFor="login-email">Email</label>
+          <input id="login-email" type="email" required autoComplete="username" className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@pilartangguh.co.id" />
         </div>
         <div>
-          <label className="label">Password</label>
-          <input type="password" required autoComplete="current-password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+          <label className="label" htmlFor="login-password">Password</label>
+          <input id="login-password" type="password" required autoComplete="current-password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
         </div>
         {error && <p className="rounded-md bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>}
         <button type="submit" disabled={busy} className="btn-primary w-full justify-center disabled:opacity-60">

@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import { createContext, useCallback, useContext, useId, useRef, useState } from "react";
+import type { InputHTMLAttributes, ReactNode } from "react";
 
 /* ---------- toast ---------- */
 
@@ -50,15 +50,16 @@ export function Modal({
   children: ReactNode;
   wide?: boolean;
 }) {
+  const titleId = useId();
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-ink/50 p-4 backdrop-blur-sm" onMouseDown={onClose}>
+    <div role="dialog" aria-modal="true" aria-labelledby={titleId} onKeyDown={(e) => { if (e.key === "Escape") onClose(); }} className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto bg-ink/50 p-4 backdrop-blur-sm" onMouseDown={onClose}>
       <div
         className={`my-8 w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-lg bg-white shadow-lift`}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-          <h3 className="text-sm font-bold">{title}</h3>
+          <h3 id={titleId} className="text-sm font-bold">{title}</h3>
           <button type="button" onClick={onClose} aria-label="Tutup" className="rounded-md p-1.5 text-ink/50 hover:bg-sand hover:text-ink">
             ✕
           </button>
@@ -108,6 +109,7 @@ export function TextField({
   placeholder,
   hint,
   type = "text",
+  ...inputProps
 }: {
   label: string;
   value: string;
@@ -115,12 +117,41 @@ export function TextField({
   placeholder?: string;
   hint?: string;
   type?: string;
-}) {
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "value" | "type">) {
+  const id = useId();
   return (
     <div>
-      <label className="label">{label}</label>
-      <input type={type} className="input" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+      <label className="label" htmlFor={inputProps.id || id}>{label}</label>
+      <input id={id} {...inputProps} type={type} className="input" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
       {hint && <p className="mt-1 text-[11px] text-ink/40">{hint}</p>}
+    </div>
+  );
+}
+
+export function PasswordField({
+  label, value, onChange, autoComplete = "new-password", hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete?: "new-password" | "current-password";
+  hint?: string;
+}) {
+  const id = useId();
+  const [visible, setVisible] = useState(false);
+  return (
+    <div>
+      <label className="label" htmlFor={id}>{label}</label>
+      <div className="relative">
+        <input id={id} type={visible ? "text" : "password"} className="input !pr-12" value={value} autoComplete={autoComplete} required maxLength={72} onChange={(e) => onChange(e.target.value)} />
+        <button type="button" aria-label={`${visible ? "Sembunyikan" : "Tampilkan"} ${label.toLowerCase()}`} aria-pressed={visible} onClick={() => setVisible((v) => !v)} className="absolute inset-y-0 right-0 rounded-r-md px-3 text-ink/50 hover:text-brand focus-visible:outline-brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-4 w-4" aria-hidden="true">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" />
+            {visible && <path d="m3 3 18 18" />}
+          </svg>
+        </button>
+      </div>
+      {hint && <p className="mt-1 text-[11px] text-ink/50">{hint}</p>}
     </div>
   );
 }

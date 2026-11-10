@@ -44,7 +44,7 @@ export default function Footer({ footer, waUrl, contact }: { footer: SectionData
         </div>
         <div className="mt-12 flex flex-col gap-2 border-t border-white/10 pt-6 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
           <p>{copyright}</p>
-          <p>{footer.built}</p>
+          <p>developed by <a href="https://flexbox.id" target="_blank" rel="noopener noreferrer">Flexbox Indonesia</a></p>
         </div>
       </div>
     </footer>

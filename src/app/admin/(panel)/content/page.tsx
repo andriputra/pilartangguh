@@ -366,7 +366,6 @@ export default function ContentEditor() {
             <>
               <TextArea label="Tagline" value={draft.footer.tagline} onChange={(v) => patch("footer", { tagline: v })} rows={2} />
               <TextField label="Copyright" value={draft.footer.copyright} onChange={(v) => patch("footer", { copyright: v })} hint="Tahun tampil otomatis mengikuti waktu." />
-              <TextField label="Teks kanan bawah" value={draft.footer.built} onChange={(v) => patch("footer", { built: v })} />
             </>
           )}
 
