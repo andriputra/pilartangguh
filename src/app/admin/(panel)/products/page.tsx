@@ -138,7 +138,7 @@ export default function ProductsAdmin() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="w-full">
       <PageHeader
         title="Produk & Kategori"
         subtitle="Produk tampil di halaman /katalog, halaman detail, dan section katalog beranda"

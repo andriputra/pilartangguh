@@ -57,6 +57,8 @@ model PortalLink {
   id               String    @id @default(cuid())
   title            String
   description      String
+  image            String?
+  imageAlt         String?
   url              String?
   tag              String?
   status           String    @default("ONLINE")

@@ -50,7 +50,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="w-full">
       <PageHeader
         title="Notifikasi"
         subtitle="Video baru dari channel YouTube yang dipantau"

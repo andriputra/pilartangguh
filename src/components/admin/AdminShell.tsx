@@ -15,6 +15,7 @@ const NAV = [
   { href: "/admin/portals", label: "Portal Tautan", icon: "⌘" },
   { href: "/admin/messages", label: "Pesan Masuk", icon: "✉" },
   { href: "/admin/settings", label: "Pengaturan", icon: "⚙" },
+  { href: "/admin/notifications", label: "Notifikasi", icon: "bell" },
 ];
 
 export default function AdminShell({ children, userName }: { children: ReactNode; userName: string }) {

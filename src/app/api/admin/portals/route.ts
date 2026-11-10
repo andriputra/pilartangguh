@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { guard, isResponse } from "@/lib/api";
+import { parsePortalInput } from "@/lib/portals";
 
 export async function GET() {
   const g = await guard();
@@ -17,21 +18,17 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const g = await guard();
   if (isResponse(g)) return g;
-  const body = await req.json().catch(() => null);
-  if (!body?.title) return Response.json({ error: "Judul wajib diisi" }, { status: 400 });
+  const data = parsePortalInput(await req.json().catch(() => null));
+  if (isResponse(data)) return data;
+  if (!data.title) return Response.json({ error: "Judul wajib diisi" }, { status: 400 });
   const count = await prisma.portalLink.count();
   const row = await prisma.portalLink.create({
     data: {
-      title: String(body.title),
-      description: String(body.description || ""),
-      url: body.url ? String(body.url) : null,
-      tag: body.tag ? String(body.tag) : null,
-      youtubeChannelId: body.youtubeChannelId ? String(body.youtubeChannelId).trim() : null,
-      status: body.status === "SEGERA HADIR" ? "SEGERA HADIR" : "ONLINE",
-      number: Number(body.number || count + 1),
-      dark: Boolean(body.dark),
-      order: Number(body.order ?? count),
-      published: body.published !== false,
+      ...data,
+      title: data.title,
+      description: data.description ?? "",
+      number: data.number ?? count + 1,
+      order: data.order ?? count,
     },
   });
   revalidatePath("/");

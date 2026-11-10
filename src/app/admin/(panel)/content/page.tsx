@@ -59,7 +59,7 @@ export default function ContentEditor() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="w-full">
       <PageHeader
         title="Konten Landing"
         subtitle="Edit teks, gambar, dan kartu pada beranda serta halaman /katalog dan /kontak"

@@ -169,10 +169,11 @@ export function TextArea({
   rows?: number;
   placeholder?: string;
 }) {
+  const id = useId();
   return (
     <div>
-      <label className="label">{label}</label>
-      <textarea className="input resize-y" rows={rows} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+      <label className="label" htmlFor={id}>{label}</label>
+      <textarea id={id} className="input resize-y" rows={rows} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }
@@ -200,10 +201,11 @@ export function SelectField({
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
 }) {
+  const id = useId();
   return (
     <div>
-      <label className="label">{label}</label>
-      <select className="input" value={value} onChange={(e) => onChange(e.target.value)}>
+      <label className="label" htmlFor={id}>{label}</label>
+      <select id={id} className="input" value={value} onChange={(e) => onChange(e.target.value)}>
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -218,62 +220,82 @@ export function ImageUpload({
   value,
   onChange,
   label = "Gambar",
+  alt = "preview",
+  fit = "cover",
+  disabled = false,
+  onBusyChange,
 }: {
   value: string | null | undefined;
   onChange: (url: string) => void;
   label?: string;
+  alt?: string;
+  fit?: "cover" | "contain";
+  disabled?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }) {
+  const id = useId();
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
+    if (busyRef.current || disabled) return;
+    busyRef.current = true;
     setBusy(true);
+    onBusyChange?.(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Upload gagal");
+      if (!res.ok) throw new Error(json?.error || "Upload gagal");
+      if (typeof json?.url !== "string" || !json.url) throw new Error("Upload gagal: URL gambar tidak tersedia");
       onChange(json.url);
+      toast("Gambar berhasil diunggah");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Upload gagal");
+      toast(e instanceof Error ? e.message : "Upload gagal", "error");
     } finally {
+      busyRef.current = false;
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
   return (
-    <div>
-      <label className="label">{label}</label>
-      <div className="flex items-center gap-3">
-        <div className="flex h-[84px] w-[120px] shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed border-line bg-sand/50">
+    <div aria-busy={busy}>
+      <label className="label" htmlFor={id}>{label}</label>
+      <div className={fit === "contain" ? "flex flex-col gap-3" : "flex items-center gap-3"}>
+        <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed border-line bg-sand/50 ${fit === "contain" ? "aspect-video w-full" : "h-[84px] w-[120px]"}`}>
           {value ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={value} alt="preview" className="h-full w-full object-cover" />
+            <img src={value} alt={alt} className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"}`} />
           ) : (
             <span className="text-[11px] text-ink/40">Kosong</span>
           )}
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className={fit === "contain" ? "flex flex-wrap items-center gap-3" : "flex flex-col gap-1.5"}>
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || disabled}
             onClick={() => inputRef.current?.click()}
-            className="btn-ghost !px-3 !py-1.5 !text-xs"
+            className="btn-ghost !px-3 !py-1.5 !text-xs disabled:opacity-60"
           >
             {busy ? "Mengupload…" : value ? "Ganti gambar" : "Pilih gambar"}
           </button>
           {value && (
-            <button type="button" onClick={() => onChange("")} className="text-left text-[11px] text-red-600 hover:underline">
+            <button type="button" disabled={busy || disabled} onClick={() => onChange("")} className="text-left text-[11px] text-red-600 hover:underline disabled:opacity-60">
               Hapus gambar
             </button>
           )}
         </div>
       </div>
       <input
+        id={id}
         ref={inputRef}
         type="file"
         accept="image/*"
+        disabled={busy || disabled}
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];

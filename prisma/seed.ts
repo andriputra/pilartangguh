@@ -111,38 +111,44 @@ async function main() {
     });
   }
 
-  const portals: { title: string; description: string; url: string; tag?: string; status: string; dark: boolean; number: number }[] = [
+  const portals: { title: string; description: string; image?: string; imageAlt?: string; url: string; tag?: string; status: string; dark: boolean; number: number }[] = [
     {
       title: "Agen Benang Bandung",
       description: "Portal kebutuhan benang dan tekstil",
+      image: "/images/portal-agen-benang-bandung.webp",
+      imageAlt: "Kolase produk benang dan perlengkapan tekstil Agen Benang Bandung",
       url: "https://agenbenangbandung.net",
       status: "ONLINE",
-      dark: true,
+      dark: false,
       number: 1,
     },
     {
       title: "Go Manic",
       description: "Eksplorasi platform Go Manic",
-      url: "https://gomanic.pilartangguh.co.id",
-      status: "ONLINE",
+      url: "",
+      status: "SEGERA HADIR",
       dark: false,
       number: 2,
     },
     {
       title: "RWCaper",
       description: "Area portal mitra RWCaper",
-      url: "",
+      image: "/images/portal-rw-caper.webp",
+      imageAlt: "Kolase percakapan podcast RW Caper bersama warga",
+      url: "https://youtube.com/@rwcaper",
       tag: "Podcast",
-      status: "SEGERA HADIR",
+      status: "ONLINE",
       dark: false,
       number: 3,
     },
     {
       title: "Bincang TPT",
       description: "Ruang diskusi tekstil dan produk",
-      url: "",
+      image: "/images/portal-bincang-tpt.webp",
+      imageAlt: "Kolase diskusi tekstil dan produk tekstil di podcast Bincang TPT",
+      url: "https://youtube.com/@rwcaper",
       tag: "Podcast",
-      status: "SEGERA HADIR",
+      status: "ONLINE",
       dark: false,
       number: 4,
     },

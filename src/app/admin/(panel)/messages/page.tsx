@@ -85,7 +85,7 @@ export default function MessagesAdmin() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="w-full">
       <PageHeader
         title="Pesan Masuk"
         subtitle="Isian formulir dari halaman Kontak pilartangguh.co.id"
