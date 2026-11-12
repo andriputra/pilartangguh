@@ -57,6 +57,8 @@ export default function ProductsAdmin() {
   const [isNew, setIsNew] = useState(false);
   const [deleting, setDeleting] = useState<Product | null>(null);
   const [deletingCat, setDeletingCat] = useState<Category | null>(null);
+  const [editingCat, setEditingCat] = useState<Category | null>(null);
+  const [editingCatName, setEditingCatName] = useState("");
   const [newCat, setNewCat] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -122,6 +124,30 @@ export default function ProductsAdmin() {
     }
   }
 
+  async function renameCategory() {
+    if (!editingCat) return;
+    const name = editingCatName.trim();
+    if (!name) {
+      toast("Nama kategori tidak boleh kosong", "error");
+      return;
+    }
+    if (name === editingCat.name) {
+      setEditingCat(null);
+      return;
+    }
+    setBusy(true);
+    try {
+      await api(`/api/admin/categories/${editingCat.id}`, { method: "PATCH", body: JSON.stringify({ name }) });
+      toast("Nama kategori diperbarui");
+      setEditingCat(null);
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Gagal memperbarui", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function removeCategory() {
     if (!deletingCat) return;
     setBusy(true);
@@ -129,6 +155,7 @@ export default function ProductsAdmin() {
       await api(`/api/admin/categories/${deletingCat.id}`, { method: "DELETE" });
       toast("Kategori dihapus (beserta produknya)");
       setDeletingCat(null);
+      setEditingCat(null);
       await load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Gagal menghapus", "error");
@@ -233,11 +260,58 @@ export default function ProductsAdmin() {
         <SectionCard title={`Kategori filter (${categories.length})`}>
           <div className="space-y-2">
             {categories.map((c) => (
-              <div key={c.id} className="flex items-center justify-between rounded-md border border-line px-3 py-2 text-[13px]">
-                <span className="font-semibold">{c.name}</span>
-                <button type="button" onClick={() => setDeletingCat(c)} className="text-[11px] font-bold text-red-600 hover:underline">
-                  Hapus
-                </button>
+              <div key={c.id} className="rounded-md border border-line px-3 py-2 text-[13px]">
+                {editingCat?.id === c.id ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      className="input !py-1.5 !text-xs"
+                      value={editingCatName}
+                      onChange={(e) => setEditingCatName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          renameCategory();
+                        }
+                        if (e.key === "Escape") setEditingCat(null);
+                      }}
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={renameCategory}
+                      disabled={busy}
+                      className="btn-dark shrink-0 !px-3 !py-1.5 !text-[11px] font-bold disabled:opacity-60"
+                    >
+                      Simpan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingCat(null)}
+                      className="shrink-0 rounded-md px-2 py-1.5 text-[11px] font-bold text-ink/50 hover:bg-sand"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold">{c.name}</span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingCat(c);
+                          setEditingCatName(c.name);
+                        }}
+                        className="rounded-md px-2 py-1 text-[11px] font-bold hover:bg-sand"
+                      >
+                        Edit
+                      </button>
+                      <button type="button" onClick={() => setDeletingCat(c)} className="rounded-md px-2 py-1 text-[11px] font-bold text-red-600 hover:bg-red-50">
+                        Hapus
+                      </button>
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
             <div className="flex gap-2 pt-1">

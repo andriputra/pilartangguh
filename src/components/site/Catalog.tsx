@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import type { SectionData } from "@/lib/content";
 import { ArrowUpRight } from "./icons";
@@ -26,11 +27,13 @@ export default function Catalog({
   products: CatalogProduct[];
   waBase: string;
 }) {
+  const PREVIEW_COUNT = 8;
   const [active, setActive] = useState<string>("all");
   const shown = useMemo(
     () => (active === "all" ? products : products.filter((p) => p.category.name === active)),
     [active, products]
   );
+  const visible = useMemo(() => shown.slice(0, PREVIEW_COUNT), [shown]);
 
   return (
     <section id="katalog" className="scroll-mt-24 bg-sand/70 py-20 sm:py-28">
@@ -85,7 +88,7 @@ export default function Catalog({
 
           <motion.div layout className="mt-8 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
             <AnimatePresence mode="popLayout">
-              {shown.map((p, i) => (
+              {visible.map((p, i) => (
                 <motion.a
                   key={p.id}
                   layout
@@ -133,6 +136,27 @@ export default function Catalog({
                 </motion.a>
               ))}
             </AnimatePresence>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.5 }}
+            className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-between"
+          >
+            <p className="text-center text-[13px] text-ink/55 sm:text-left">
+              {shown.length > visible.length
+                ? `Ini sebagian pilihan dari ${shown.length} produk aktif. Daftar lengkap dengan kode, spesifikasi, dan harga ada di katalog.`
+                : "Daftar lengkap dengan kode, spesifikasi, dan harga ada di katalog."}
+            </p>
+            <Link
+              href="/katalog"
+              className="btn shrink-0 !bg-ink text-white hover:!bg-brand"
+            >
+              Lihat semua produk
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
           </motion.div>
         </LayoutGroup>
       </div>
