@@ -13,6 +13,45 @@ import WaFloat from "@/components/site/WaFloat";
 
 export const dynamic = "force-dynamic";
 
+function shuffle<T>(list: T[]): T[] {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+// Menyelang-seling produk per kategori supaya baris pertama tidak didominasi satu kategori.
+function spreadByCategory<T extends { category: { name: string } }>(items: T[]): T[] {
+  const labels: string[] = [];
+  const buckets: T[][] = [];
+  for (const item of items) {
+    let index = labels.indexOf(item.category.name);
+    if (index === -1) {
+      index = buckets.length;
+      labels.push(item.category.name);
+      buckets.push([]);
+    }
+    buckets[index].push(item);
+  }
+
+  const lists = buckets.map(shuffle);
+  const cursors = lists.map(() => 0);
+  const out: T[] = [];
+  for (;;) {
+    let picked = false;
+    for (let i = 0; i < lists.length; i++) {
+      if (cursors[i] < lists[i].length) {
+        out.push(lists[i][cursors[i]]);
+        cursors[i] += 1;
+        picked = true;
+      }
+    }
+    if (!picked) return out;
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const sections = await getSections();
   return {
@@ -56,7 +95,7 @@ export default async function HomePage() {
         <Catalog
           catalog={sections.catalog}
           categories={categories}
-          products={products.map((p) => ({ ...p, category: { name: p.category.name } }))}
+          products={spreadByCategory(products).map((p) => ({ ...p, category: { name: p.category.name } }))}
           waBase={`https://wa.me/${settings.whatsapp_number.replace(/[^0-9]/g, "")}?text=`}
         />
         <Network network={sections.network} portals={portals} />
